@@ -47,8 +47,8 @@ public class Definitions {
     public static final int BITS_PER_WORD = 16;
 
     // screen size
-    private static final int SCREEN_WIDTH_IN_WORDS = 32;
-    private static final int SCREEN_HEIGHT_IN_WORDS = 256;
+    private static final int SCREEN_WIDTH_IN_WORDS = 128;
+    private static final int SCREEN_HEIGHT_IN_WORDS = 64;
 
     /**
      * Number of words in the screen
@@ -58,10 +58,10 @@ public class Definitions {
     /**
      * Screen width in pixels
      */
-    public static final int SCREEN_WIDTH = SCREEN_WIDTH_IN_WORDS * BITS_PER_WORD;
+    public static final int SCREEN_WIDTH = SCREEN_WIDTH_IN_WORDS;
 
     /**
-     * Screen width in pixels (=words)
+     * Screen height in pixels (=words)
      */
     public static final int SCREEN_HEIGHT = SCREEN_HEIGHT_IN_WORDS;
 

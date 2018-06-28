@@ -44,6 +44,8 @@ public class ScreenComponent extends JPanel implements ScreenGUI, ActionListener
     // The screen redrawing timer
     protected Timer timer;
 
+    private static final int SCALE = 4;
+
     /**
      * Constructs a new Sceen with given height & width (in words)
      * and amount of bits per word.
@@ -55,10 +57,10 @@ public class ScreenComponent extends JPanel implements ScreenGUI, ActionListener
         Insets borderInsets = getBorder().getBorderInsets(this);
         int borderWidth = borderInsets.left + borderInsets.right;
         int borderHeight = borderInsets.top + borderInsets.bottom;
-        setPreferredSize(new Dimension(Definitions.SCREEN_WIDTH + borderWidth,
-                                       Definitions.SCREEN_HEIGHT + borderHeight));
-        setSize(Definitions.SCREEN_WIDTH + borderWidth,
-                Definitions.SCREEN_HEIGHT + borderHeight);
+        setPreferredSize(new Dimension(Definitions.SCREEN_WIDTH * SCALE + borderWidth,
+                                       Definitions.SCREEN_HEIGHT * SCALE + borderHeight));
+        setSize(Definitions.SCREEN_WIDTH * SCALE + borderWidth,
+                Definitions.SCREEN_HEIGHT * SCALE + borderHeight);
 
         data = new short[Definitions.SCREEN_SIZE];
         x = new int[Definitions.SCREEN_SIZE];
@@ -68,11 +70,11 @@ public class ScreenComponent extends JPanel implements ScreenGUI, ActionListener
 
         // updates pixels indice
         for (int i = 1; i < Definitions.SCREEN_SIZE; i++) {
-            x[i] = x[i - 1] + Definitions.BITS_PER_WORD;
+            x[i] = x[i - 1] + SCALE;
             y[i] = y[i - 1];
-            if (x[i] == Definitions.SCREEN_WIDTH + borderInsets.left) {
+            if (x[i] == Definitions.SCREEN_WIDTH * SCALE + borderInsets.left) {
                 x[i] = borderInsets.left;
-                y[i]++;
+                y[i] += SCALE;
             }
         }
 
@@ -142,6 +144,10 @@ public class ScreenComponent extends JPanel implements ScreenGUI, ActionListener
         }
     }
 
+    // RGB565
+    private static int RED_MASK = 0xF800;
+    private static int GREEN_MASK = 0x07E0;
+    private static int BLUE_MASK = 0x001F;
     /**
      * Called when the screen needs to be painted.
      */
@@ -150,20 +156,14 @@ public class ScreenComponent extends JPanel implements ScreenGUI, ActionListener
         super.paintComponent(g);
 
         for (int i = 0; i < Definitions.SCREEN_SIZE; i++) {
-            if (data[i] != 0) {
-                if (data[i] == 0xffff) // draw a full line
-                    g.drawLine(x[i], y[i], x[i] + 15, y[i]);
-                else {
-                    short value = data[i];
-                    for (int j = 0; j < 16; j++) {
-                        if ((value & 0x1) == 1)
-                            // since there's no drawPixel, uses drawLine to draw one pixel
-                            g.drawLine(x[i] + j, y[i], x[i] + j, y[i]);
-
-                        value = (short)(value >> 1);
-                    }
-                }
-            }
+            int color = data[i];
+            int red = (color & RED_MASK) >> 8;
+            int green = (color & GREEN_MASK) >> 3;
+            int blue = (color & BLUE_MASK) << 3;
+            g.setColor(new Color(red, green, blue));
+            // since there's no drawPixel, uses drawLine to draw one pixel
+            g.drawRect(x[i], y[i], SCALE-1, SCALE-1);
+            g.fillRect(x[i], y[i], SCALE-1, SCALE-1);
         }
     }
 }

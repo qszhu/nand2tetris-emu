@@ -25,10 +25,10 @@ import Hack.VMEmulator.TerminateVMProgramThrowable;
 
 @SuppressWarnings("UnusedDeclaration")
 public class Jack_Screen extends JackOSClass {
-    private static boolean black;
+    private static short color;
 
     public static void init() {
-        black = true;
+        color = (short)0xFFFF;
     }
 
     public static void clearScreen() throws TerminateVMProgramThrowable {
@@ -36,32 +36,26 @@ public class Jack_Screen extends JackOSClass {
             writeMemory(i, 0);
     }
 
-    private static void updateLocation(int address, int mask) throws TerminateVMProgramThrowable {
-        address += SCREEN_START_ADDRESS;
-        int value = readMemory(address);
-        if (black)
-            value |= mask;
-        else
-            value &= ~mask;
-        writeMemory(address, value);
+    private static void updateLocation(int address) throws TerminateVMProgramThrowable {
+        writeMemory(SCREEN_START_ADDRESS + address, color);
     }
 
-    public static void setColor(short color) {
-        black = (color != 0);
+    public static void setColor(short r, short g, short b) {
+        color = (short)(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3) & 0xFFFF);
     }
 
     public static void drawPixel(short x, short y) throws TerminateVMProgramThrowable {
         if (x < 0 || x >= SCREEN_WIDTH || y < 0 || y >= SCREEN_HEIGHT)
             callFunction("Sys.error", SCREEN_DRAWPIXEL_ILLEGAL_COORDS);
 
-        updateLocation((y * SCREEN_WIDTH + x) >> 4, 1 << (x & 15));
+        updateLocation(y * SCREEN_WIDTH + x);
     }
 
     private static void drawConditional(int x, int y, boolean exchange) throws TerminateVMProgramThrowable {
         if (exchange)
-            updateLocation((x * SCREEN_WIDTH + y) >> 4, 1 << (y & 15));
+            updateLocation(x * SCREEN_WIDTH + y);
         else
-            updateLocation((y * SCREEN_WIDTH + x) >> 4, 1 << (x & 15));
+            updateLocation(y * SCREEN_WIDTH + x);
     }
 
     public static void drawLine(short x1, short y1, short x2, short y2) throws TerminateVMProgramThrowable {
@@ -123,51 +117,22 @@ public class Jack_Screen extends JackOSClass {
                 y1 < 0 || y2 >= SCREEN_HEIGHT) {
             callFunction("Sys.error", SCREEN_DRAWRECTANGLE_ILLEGAL_COORDS);
         }
-        int x1Word = x1 >> 4;
-        int x2Word = x2 >> 4;
-        int firstWordMask = 0xFFFF << (x1 & 15);
-        int lastWordMask = 0xFFFF >>> (15 - (x2 & 15));
-        int address = (y1 * (SCREEN_WIDTH >> 4)) + x1Word;
-        int wordsDiff = x2Word - x1Word;
-        if (wordsDiff == 0) {
-            int mask = lastWordMask & firstWordMask;
-            for (; y1 <= y2; ++y1, address += (SCREEN_WIDTH >> 4)) {
-                updateLocation(address, lastWordMask & firstWordMask);
-            }
-        } else {
-            for (; y1 <= y2; ++y1, address += (SCREEN_WIDTH >> 4) - wordsDiff) {
-                int lastAddressInLine = address + wordsDiff;
-                updateLocation(address, firstWordMask);
-                for (++address; address < lastAddressInLine; ++address) {
-                    updateLocation(address, 0xFFFF);
-                }
-                updateLocation(address, lastWordMask);
+        for (int y = y1; y <= y2; y++) {
+            int address = y * SCREEN_WIDTH;
+            for (int x = x1; x <= x2; x++) {
+              updateLocation(address + x);
             }
         }
     }
 
     private static void drawTwoHorizontal(int y1, int y2, int minX, int maxX) throws TerminateVMProgramThrowable {
-        int minXWord = minX >> 4;
-        int maxXWord = maxX >> 4;
-        int firstWordMask = 0xFFFF << (minX & 15);
-        int lastWordMask = 0xFFFF >>> (15 - (maxX & 15));
-        int wordsDiff = maxXWord - minXWord;
-        int address1 = (y1 * (SCREEN_WIDTH >> 4)) + minXWord;
-        int address2 = (y2 * (SCREEN_WIDTH >> 4)) + minXWord;
-        if (wordsDiff == 0) {
-            updateLocation(address1, lastWordMask & firstWordMask);
-            updateLocation(address2, lastWordMask & firstWordMask);
-        } else {
-            int lastAddressInLine1 = address1 + wordsDiff;
-            updateLocation(address1, firstWordMask);
-            updateLocation(address2, firstWordMask);
-            for (++address1, ++address2; address1 < lastAddressInLine1;
-                 ++address1, ++address2) {
-                updateLocation(address1, 0xFFFF);
-                updateLocation(address2, 0xFFFF);
-            }
-            updateLocation(address1, lastWordMask);
-            updateLocation(address2, lastWordMask);
+        int address = y1 * SCREEN_WIDTH;
+        for (int x = minX; x <= maxX; x++) {
+          updateLocation(address + x);
+        }
+        address = y2 * SCREEN_WIDTH;
+        for (int x = minX; x <= maxX; x++) {
+          updateLocation(address + x);
         }
     }
 
